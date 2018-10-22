@@ -2,7 +2,10 @@ package com.webpich.tibellus;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.CookieStore;
 
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.JavascriptExecutor;
@@ -14,24 +17,91 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webpich.tibellus.seen.Collection;
+import com.webpich.tibellus.seen.CollectionQuery;
+import com.webpich.tibellus.seen.seo.Content;
+import com.webpich.tibellus.seen.seo.ISeoService;
+import com.webpich.tibellus.seen.user.Account;
+import com.webpich.tibellus.seen.user.IUserService;
+
+import okhttp3.JavaNetCookieJar;
+import okhttp3.OkHttpClient;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.jackson.JacksonConverterFactory;
+
 public class Main {
 
 	public static void main(String[] args) throws IOException {
-		String file = "page.html";
-		String path = "http://webpich.com";
+		String path = "http://www.webpich.com";
+		String login = "admin";
+		String password = "admin";
 
-		WebDriver driver = loadWebDriver();
-		try {
-			driver.get(path);
-			loadDriverLimits(driver);
-		} catch (Exception e) {
+		// serialization
+		ObjectMapper objectMapper = new ObjectMapper();
+		objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+		// HTTP client
+		CookieStore cookieStore = null;
+		CookieHandler cookieHandler = new CookieManager(cookieStore, CookiePolicy.ACCEPT_ALL);
+		OkHttpClient httpClient = new OkHttpClient.Builder()//
+				.cookieJar(new JavaNetCookieJar(cookieHandler))//
+				.build();
+
+		Retrofit retrofit = new Retrofit.Builder()//
+				.baseUrl(path + "/api/v2/")//
+				.client(httpClient)//
+				.addConverterFactory(JacksonConverterFactory.create(objectMapper))//
+				.build();
+
+		// login
+		IUserService userService = retrofit.create(IUserService.class);
+		Response<Account> response = userService//
+				.login(login, password)//
+				.execute();
+		if (!response.isSuccessful()) {
+			System.err.println("Authentication fail (user or password is incorrect)");
 		}
 
-		// Take a screenshot of the current page
-		FileUtils.write(new File(file), driver.getPageSource(), Charset.forName("UTF-8"));
-		File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(screenshot, new File("screenshot.png"));
-		driver.quit();
+		response = userService//
+				.getCurrentAccount()//
+				.execute();
+		if (!response.isSuccessful()) {
+			System.err.println("You are not logined");
+		}
+
+		
+		// get list of SEO contents
+		ISeoService seoService = retrofit.create(ISeoService.class);
+		
+		CollectionQuery query = new CollectionQuery();
+		Response<Collection<Content>> contentListResponse = seoService//
+				.getContents(query)//
+				.execute();
+		if (!response.isSuccessful()) {
+			System.err.println("Fail to get list of contents");
+		}
+		
+		Collection<Content> list = contentListResponse.body();
+		for (Content content : list.getItems()) {
+			System.out.println(content.getId());
+		}
+
+//
+//		WebDriver driver = loadWebDriver();
+//		try {
+//			driver.get(path);
+//			loadDriverLimits(driver);
+//		} catch (Exception e) {
+//		}
+//
+//		// Take a screenshot of the current page
+//		FileUtils.write(new File("page.html"), driver.getPageSource(), Charset.forName("UTF-8"));
+//		File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+//		FileUtils.copyFile(screenshot, new File("screenshot.png"));
+//		driver.quit();
 	}
 
 	/**
@@ -50,11 +120,11 @@ public class Main {
 		options.addArguments("--ignore-certificate-errors");
 		// Do not download images
 		options.addArguments("--blink-settings=imagesEnabled=false");
-		
+
 		// TODO: maso, 2018: enable appcatch
 		// TODO: maso, 2018: enable catch
 		// TODO: maso, 2018: do not download css
-		
+
 		// crate driver
 		ChromeDriver driver = new ChromeDriver(options);
 		return driver;
