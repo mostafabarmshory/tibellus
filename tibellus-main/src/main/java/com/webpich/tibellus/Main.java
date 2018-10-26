@@ -78,7 +78,7 @@ public class Main {
 		seoService = retrofit.create(ISeoService.class);
 
 		updateSeenPagesList(login, password);
-//		updatePrerenderdPages();
+		updatePrerenderdPages();
 		syncSeenPages(login, password);
 	}
 

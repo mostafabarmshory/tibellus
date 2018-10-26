@@ -8,6 +8,8 @@
 	<packaging>pom</packaging>
 	<modules>
 		<module>tibellus-main</module>
+		<module>tibellus-server</module>
+		<module>tabellus-worker</module>
 	</modules>
 
 	<dependencyManagement>

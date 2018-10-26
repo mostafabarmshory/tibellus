@@ -1,0 +1,32 @@
+# Docker image
+image: jmeter
+variables:
+  # job variables
+  - a: 1
+  - b: 2
+script:
+  # script to run
+  - ls -l
+  - mkdir test
+  - cd test
+  - touch README.md
+artifacts:
+  # path to push artifact
+  - url: http://localhost:8083/api/v2/jobs/artifacts/123/content
+    paths:
+      - text/*
+  # path to push artifact
+  - url: http://localhost:8083/api/v2/jobs/artifacts/124/content
+    paths:
+      - docs/*
+log: 
+  # path to push log
+  url: http://localhost:8083/api/v2/jobs/logs/123/append
+  period: 2s
+attachments:
+  # job attachment
+  - url: http://localhost:8083/api/v2/jobs/attachment/1/content
+    archive: false
+  # artifacts of previeus job
+  - url: http://localhost:8083/api/v2/jobs/artifacts/122/content
+    archive: true
