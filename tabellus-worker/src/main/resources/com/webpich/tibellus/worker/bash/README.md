@@ -1,1 +1,0 @@
-A docker image to run bash
