@@ -14,6 +14,7 @@
     "compression": "~1.7.1",
     "express": "~4.16.2",
     "he": "~1.1.1",
+    "jshint": "^2.9.6",
     "valid-url": "~1.0.9"
   },
   "devDependencies": {
